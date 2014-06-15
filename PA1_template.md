@@ -9,7 +9,8 @@ The following report shall provide a detailed description of how the data was re
 
 Make sure that the following packages used by this script are installed
 
-```{r loadLibs,echo=TRUE,cache=FALSE,message=FALSE}
+
+```r
 library("timeDate") # Required for weekday calculations
 library("ggplot2") # Required for plotting
 library("psych") # Required for summary statistics
@@ -23,20 +24,19 @@ library("psych") # Required for summary statistics
 
 ### 1. Reading the raw CSV formatted source data file
 
-```{r readCSV,echo=TRUE,results='hide'}
 
+```r
 activityMonitorDataRaw <- read.csv("activity.csv",sep=",",header=TRUE,colClasses=c("numeric","Date","numeric"))
-
 ```
 
 ### 2. Tidying up the data prior to analysis 
 
 The raw data has missing values (NA) and these need to be excluded from analysis for this part of the assignment. The interval column was renamed for additional clarity.
 
-```{r removeNA,echo=TRUE,results='hide'}
+
+```r
 activityMonitorData <- na.omit(activityMonitorDataRaw)
 colnames(activityMonitorData) <- c("steps","date","intervalID")
-
 ```
 
 * * *
@@ -49,8 +49,8 @@ colnames(activityMonitorData) <- c("steps","date","intervalID")
 
 Creating the histogram requires aggregation of steps data by date and summation of values for each group.
 
-```{r histogram1,echo=TRUE,fig.height=6,fig.width=6}
 
+```r
 #aggregate
 activityDataTotalsByDate <- aggregate(steps ~ date,data=activityMonitorData,sum)
 
@@ -63,20 +63,26 @@ p <- p  + theme(axis.title=element_text(face="bold",size="14",color="brown"),
                 axis.text=element_text(size=14,face="bold")) 
 p <- p + theme(plot.title = element_text(lineheight=.8, face="bold"))
 print(p)
-
 ```
+
+![plot of chunk histogram1](figure/histogram1.png) 
 
 ### 2. Calculating and reporting the mean and median total number of steps taken per day
 
-```{r meanAndMedian1,echo=TRUE,results='hide'}
+
+```r
 activityTotalMean <- mean(activityDataTotalsByDate$steps)
 activityTotalMedian <- median(activityDataTotalsByDate$steps)
 paste("Mean Total Steps per day :", round(activityTotalMean,2))
 paste("Median Total Steps per day :", round(activityTotalMedian,2))
 ```
-```{r printMeanMedian,echo=FALSE}
-   paste("Mean Total Steps per day :", round(activityTotalMean,2))
-   paste("Median Total Steps per day :", round(activityTotalMedian,2))
+
+```
+## [1] "Mean Total Steps per day : 10766.19"
+```
+
+```
+## [1] "Median Total Steps per day : 10765"
 ```
 
 
@@ -90,30 +96,38 @@ paste("Median Total Steps per day :", round(activityTotalMedian,2))
 
 Generating this plot requires the aggregation of steps data by interval, calculation of the mean values for each interval and a sort of the resulting data set in an ascending order, sorted by the interval ID.  
 
-```{r lineplot1,echo=TRUE,fig.height=6,figure.width=6}
 
+```r
 #aggregate
 activityMonitorDataByInterval <- aggregate(steps ~ intervalID,data=activityMonitorData,mean)
 #sort
 activityMonitorDataByInterval <- activityDataIntervalDf[order(activityMonitorDataByInterval$intervalID),]
+```
 
+```
+## Error: object 'activityDataIntervalDf' not found
+```
+
+```r
 #plot
 plot(activityMonitorDataByInterval$intervalID,activityMonitorDataByInterval$steps,
      xlab="Interval",ylab="Average Number of Steps",
      main= "Average Daily Activity Pattern",
      type="l",col.lab="brown",col="blue",lwd=1.5)
-
 ```
+
+![plot of chunk lineplot1](figure/lineplot1.png) 
 
 ### 2. Finding the interval that on average across all the days in the dataset, contains the maximum number of steps
 
-```{r maxAvgInterval,echo=TRUE,results='hide'}
+
+```r
 maxIntervalID <- activityMonitorDataByInterval[which(activityMonitorDataByInterval$steps == max(activityMonitorDataByInterval$steps)),1]
 paste("Interval with the Maximum Steps :", maxIntervalID )
+```
 
 ```
-```{r printMaxAvgInterval,echo=FALSE}
-paste("Interval with the Maximum Steps :", maxIntervalID )
+## [1] "Interval with the Maximum Steps : 835"
 ```
 
 * * *
@@ -126,19 +140,21 @@ Following computations and analysis will use an ***imputed data set*** where the
 
 ### 1. Determining the number of records/cases in the raw data set that are missing values (coded as NA).
 
-```{r countNA,echo=TRUE,results='hide'}
+
+```r
 countNARows <- nrow(activityMonitorDataRaw[!complete.cases(activityMonitorDataRaw),])
+```
 
 ```
-```{r printCountNA,echo=FALSE}
-paste("Total number of NA records :",countNARows)
+## [1] "Total number of NA records : 2304"
 ```
 
 ### 2. Devising a strategy for filling in all of the missing values in the dataset.
 
 The strategy used for imputing data was to ***replace the missing data with the mean number of steps for the same 5-min interval,averaged across all days.*** 
 
-```{r imputedSubset, echo=TRUE,results='hide'}
+
+```r
 # create a data frame with all incomplete cases
 missingActivityMonitorData <- activityMonitorDataRaw[is.na(activityMonitorDataRaw$steps),]
 colnames(missingActivityMonitorData) <- c("steps","date","intervalID")
@@ -146,26 +162,24 @@ colnames(missingActivityMonitorData) <- c("steps","date","intervalID")
 # Merge the incomplete data set with the previously computed activty mean data set on the interval to create a data subset with imputed values. 
 imputedActivityMonitorSubset <- merge(missingActivityMonitorData,activityMonitorDataByInterval,by=c("intervalID"))[,c(4,3,1)]
 colnames(imputedActivityMonitorSubset) <- c("steps","date","intervalID")
-
 ```
 
 ### 3. Creating a new dataset that is equal to the original dataset but with the missing data filled in.
 
 Combine (rbind) the imputed data set with the data subset that had the NA cases removed, to create a new, complete data set with imputed data values
 
-```{r imputedDataSet,echo=TRUE,results='hide'}
 
+```r
 #combine data frames to create a complete data set
 imputedActivityMonitorData <- rbind(activityMonitorData,imputedActivityMonitorSubset)
-
 ```
 
 ### 4.1 Plotting a histogram of the total number of steps taken each day and calculating and reporting the mean and median total number of steps taken per day. 
 
 Creating the histogram requires aggregation of steps data by date and summation of values for each group. 
 
-```{r imputedDataSetHistogram,echo=TRUE,fig.height=6,fig.width=6} 
 
+```r
 # aggregate
 imputedActivityDataTotalsByDate <- aggregate(steps ~ date,data=imputedActivityMonitorData,sum)
 
@@ -178,35 +192,47 @@ p <- p  + theme(axis.title=element_text(face="bold",size="14",color="brown"),
                 axis.text=element_text(size=14,face="bold")) 
 p <- p + theme(plot.title = element_text(lineheight=.8, face="bold"))
 print(p)
+```
 
+![plot of chunk imputedDataSetHistogram](figure/imputedDataSetHistogram.png) 
+
+```r
 # computing the mean and median for the total daily steps 
 imputedActivityTotalMean <- mean(imputedActivityDataTotalsByDate$steps)
 imputedActivityTotalMedian <- median(imputedActivityDataTotalsByDate$steps)
+```
 
 ```
-```{r printImputedMeanMedian,echo=FALSE}
-paste("Imputed data Mean total Steps taken per day :", round(imputedActivityTotalMean,2))
-paste("Imputed data Median total Steps taken per day :", round(imputedActivityTotalMedian,2))
+## [1] "Imputed data Mean total Steps taken per day : 10766.19"
+```
+
+```
+## [1] "Imputed data Median total Steps taken per day : 10766.19"
 ```
 
 ### 4.2 Comparing the mean and median estimates for data sets with and without the missing data imputed and analyzing the impact of imputing missing data on the estimates of the total daily number of steps
 
 Some basic column-level descriptive statistical measures can be compared with the describe() function in the psych package
 
-```{r descriptiveStats, echo=TRUE}
+
+```r
  d1 <- describe(activityDataTotalsByDate$steps)[c(-1,-6,-7)]
  d2 <- describe(imputedActivityDataTotalsByDate$steps)[c(-1,-6,-7)]
 ```
 
 Descriptive statistics for data set WITHOUT missing values imputed (some measures were supressed)
 
-```{r comparingMeanMedian1,echo=FALSE}
-print(d1)
+
+```
+##    n  mean   sd median min   max range skew kurtosis    se
+## 1 53 10766 4269  10765  41 21194 21153 -0.3     0.59 586.4
 ```
 
 Descriptive statistics for data set WITH missing values imputed (some measures were supressed)
-```{r comparingMeanMedian2,echo=FALSE}
-print(d2)
+
+```
+##    n  mean   sd median min   max range  skew kurtosis    se
+## 1 61 10766 3974  10766  41 21194 21153 -0.32     1.15 508.9
 ```
 
 Following observations can be made from the comparison of the descrptive statistics for the two data sets
@@ -218,7 +244,8 @@ Following observations can be made from the comparison of the descrptive statist
 * The quartile cut-offs slightly shifted to the right following imputation (indicated by base summary function)
 * Additional Density plots confirmed the skewness and kurtosis statistics reported by the describe function (shown below) 
 
-```{r densityPlot,echo=TRUE,fig.height=5,fig.width=10}
+
+```r
 p <- ggplot() 
 p <- p + scale_fill_discrete(name="Imputation State") + guides(fill = guide_legend(reverse=TRUE))
 p <- p + geom_density(aes(x=steps,fill=as.factor("pre Imputation"),alpha=0.3), data=activityDataTotalsByDate) 
@@ -229,8 +256,9 @@ p <- p  + theme(axis.title=element_text(face="bold",size="14",color="brown"),
                 axis.text=element_text(size=14,face="bold")) 
 p <- p + theme(plot.title = element_text(lineheight=.8, face="bold"))
 print(p)
-
 ```
+
+![plot of chunk densityPlot](figure/densityPlot.png) 
 
 * * *
 
@@ -248,17 +276,17 @@ Continuing to work with the complete and imputed data set for analyzing weekday 
 
 A new factor variable 'day' is added to the data set and is assigned a value based on the date of the obervation
 
-```{r weekdayFactor, echo=TRUE}
-imputedActivityMonitorData$day <- sapply(imputedActivityMonitorData$date,FUN=function(x) { if(isWeekday(x)) {as.factor("Weekday") } else {as.factor("Weekend")}})
 
+```r
+imputedActivityMonitorData$day <- sapply(imputedActivityMonitorData$date,FUN=function(x) { if(isWeekday(x)) {as.factor("Weekday") } else {as.factor("Weekend")}})
 ```
 
 ### 2. Making a panel plot containing a time series plot of the 5-minute interval and the average number of steps taken, averaged across all weekday days or weekend days.
 
 Generating the panel plot involves aggregation of data by the interval and the new factor variable 'day', followed by computation of the mean number of steps for each (interval + day) group
 
-```{r weekdayPlot, echo=TRUE, gig.height=6, fig.width=8}
 
+```r
 # aggregate 
 imputedActivityDataByIntervalDay <- aggregate(steps ~ intervalID + day,data=imputedActivityMonitorData,mean)
 
@@ -273,8 +301,9 @@ p <- p + theme(plot.title = element_text(lineheight=.8, face="bold"))
 p <- p + theme(strip.text.y = element_text(colour = "blue", angle = 45, size = 12, face="bold",
                 hjust = 0.5, vjust = 0.5))
 print(p)
-
 ```
+
+![plot of chunk weekdayPlot](figure/weekdayPlot.png) 
 
 ***Activity for weekends appears to be more spread out compared to that during weekdays. Weekday activity pattern shows high peaks during early intervals followed by an extended period of low activity. Weekend activity profile indicates a delayed start but maintains a medium level of step activity through out the day.*** 
 
